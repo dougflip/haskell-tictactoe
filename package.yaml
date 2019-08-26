@@ -1,14 +1,14 @@
-name:                haskell-tictactoe
-version:             0.1.0.0
-github:              "dougflip/haskell-tictactoe"
-license:             BSD3
-author:              "Doug DiFilippo"
-maintainer:          "douglasdifilippo@gmail.com"
-copyright:           "2019 Doug DiFilippo"
+name: haskell-tictactoe
+version: 0.1.0.0
+github: "dougflip/haskell-tictactoe"
+license: BSD3
+author: "Doug DiFilippo"
+maintainer: "douglasdifilippo@gmail.com"
+copyright: "2019 Doug DiFilippo"
 
 extra-source-files:
-- README.md
-- ChangeLog.md
+  - README.md
+  - ChangeLog.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -17,32 +17,33 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/dougflip/haskell-tictactoe#readme>
+description: Please see the README on GitHub at <https://github.com/dougflip/haskell-tictactoe#readme>
 
 dependencies:
-- base >= 4.7 && < 5
+  - base
 
 library:
   source-dirs: src
 
 executables:
   haskell-tictactoe-exe:
-    main:                Main.hs
-    source-dirs:         app
+    main: Main.hs
+    source-dirs: app
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - haskell-tictactoe
+      - haskell-tictactoe
 
 tests:
   haskell-tictactoe-test:
-    main:                Spec.hs
-    source-dirs:         test
+    main: Spec.hs
+    source-dirs: test
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - haskell-tictactoe
+      - haskell-tictactoe
+      - hspec
