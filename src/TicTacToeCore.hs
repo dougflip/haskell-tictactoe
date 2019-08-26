@@ -1,4 +1,11 @@
-module TicTacToeCore where
+module TicTacToeCore
+  ( PlayerPiece(X, O)
+  , newGameBoard
+  , applyMove
+  , isGameComplete
+  , GameBoard
+  , PlayerMovePosition
+  ) where
 
 import           Data.List  (any, nub)
 import           Data.Maybe (isJust)
