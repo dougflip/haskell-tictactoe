@@ -1,10 +1,10 @@
 module TicTacToeCore
-  ( PlayerPiece(X, O)
+  ( PlayerPiece(..)
+  , PlayerMovePosition(..)
+  , GameBoard
   , newGameBoard
   , applyMove
   , isGameComplete
-  , GameBoard
-  , PlayerMovePosition
   ) where
 
 import           Data.List  (any, nub)
@@ -31,7 +31,16 @@ data GameBoard =
     }
   deriving (Show, Eq)
 
-type PlayerMovePosition = Int
+data PlayerMovePosition
+  = One
+  | Two
+  | Three
+  | Four
+  | Five
+  | Six
+  | Seven
+  | Eight
+  | Nine
 
 newGameBoard :: GameBoard
 newGameBoard =
@@ -49,18 +58,15 @@ newGameBoard =
 -- Can probably use lenses to reduce this boiler plate.
 -- Its also possible that using a record is a poor data model for this.
 applyMove :: PlayerPiece -> PlayerMovePosition -> GameBoard -> GameBoard
-applyMove piece 1 board = board {square1 = Just piece}
-applyMove piece 2 board = board {square2 = Just piece}
-applyMove piece 3 board = board {square3 = Just piece}
-applyMove piece 4 board = board {square4 = Just piece}
-applyMove piece 5 board = board {square5 = Just piece}
-applyMove piece 6 board = board {square6 = Just piece}
-applyMove piece 7 board = board {square7 = Just piece}
-applyMove piece 8 board = board {square8 = Just piece}
-applyMove piece 9 board = board {square9 = Just piece}
--- can we make our "PlayerMovePosition" enforce it is a number 1-9 instead of needing to error here?
-applyMove _ position _ =
-  error ("Position of " ++ show position ++ " is out of bounds!")
+applyMove piece One board   = board {square1 = Just piece}
+applyMove piece Two board   = board {square2 = Just piece}
+applyMove piece Three board = board {square3 = Just piece}
+applyMove piece Four board  = board {square4 = Just piece}
+applyMove piece Five board  = board {square5 = Just piece}
+applyMove piece Six board   = board {square6 = Just piece}
+applyMove piece Seven board = board {square7 = Just piece}
+applyMove piece Eight board = board {square8 = Just piece}
+applyMove piece Nine board  = board {square9 = Just piece}
 
 winningPatterns :: [[GameBoard -> Maybe PlayerPiece]]
 winningPatterns =
