@@ -63,7 +63,16 @@ applyMove _ position _ =
   error ("Position of " ++ show position ++ " is out of bounds!")
 
 winningPatterns :: [[GameBoard -> Maybe PlayerPiece]]
-winningPatterns = [[square1, square2, square3]]
+winningPatterns =
+  [ [square1, square2, square3]
+  , [square4, square5, square6]
+  , [square7, square8, square9]
+  , [square1, square4, square7]
+  , [square2, square5, square8]
+  , [square3, square6, square9]
+  , [square1, square5, square9]
+  , [square3, square5, square7]
+  ]
 
 isWinningPattern :: GameBoard -> [(GameBoard -> Maybe PlayerPiece)] -> Bool
 isWinningPattern board positions =
