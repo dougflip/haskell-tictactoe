@@ -1,11 +1,4 @@
-module TicTacToeCore
-  ( PlayerPiece(..)
-  , PlayerMovePosition(..)
-  , GameBoard
-  , newGameBoard
-  , applyMove
-  , isGameComplete
-  ) where
+module TicTacToeCore where
 
 import           Data.List  (any, nub)
 import           Data.Maybe (isJust)
@@ -31,6 +24,23 @@ data GameBoard =
     }
   deriving (Show, Eq)
 
+{- Tracks the current board and the status of the game.
+   Currently, `gameStatus` just stores which PlayerPiece has the next turn.
+   Eventually, I'd like this to be one of two things:
+     1. If the game is still in progress, then the PlayerPiece
+     2. If the game has finished then that data plus who won.
+   It's possible that what I actually want is 2 different game constructors:
+   ```
+   data Game = InProgressGame PlayerPiece | FinishedGame PlayerPiece
+   ```
+   But I'll need to play around with that
+-}
+data Game =
+  Game
+    { gameBoard  :: GameBoard
+    , gameStatus :: PlayerPiece
+    }
+
 data PlayerMovePosition
   = One
   | Two
@@ -42,8 +52,8 @@ data PlayerMovePosition
   | Eight
   | Nine
 
-newGameBoard :: GameBoard
-newGameBoard =
+emptyGameBoard :: GameBoard
+emptyGameBoard =
   GameBoard
     Nothing
     Nothing
@@ -55,7 +65,10 @@ newGameBoard =
     Nothing
     Nothing
 
--- Can probably use lenses to reduce this boiler plate.
+newGame :: Game
+newGame = Game emptyGameBoard X
+
+-- Can probably use lenses to reduce some boilerplate?
 -- Its also possible that using a record is a poor data model for this.
 applyMove :: PlayerPiece -> PlayerMovePosition -> GameBoard -> GameBoard
 applyMove piece One board   = board {square1 = Just piece}
@@ -67,6 +80,14 @@ applyMove piece Six board   = board {square6 = Just piece}
 applyMove piece Seven board = board {square7 = Just piece}
 applyMove piece Eight board = board {square8 = Just piece}
 applyMove piece Nine board  = board {square9 = Just piece}
+
+{- This is the function that should be exposed.
+   The idea is that the "Game" itself records which piece has the next move
+   TODO: We still need to enforce that you can't play a position that is already played.
+-}
+applyTurn :: PlayerMovePosition -> Game -> Game
+applyTurn piece (Game board X) = Game (applyMove X piece board) O
+applyTurn piece (Game board O) = Game (applyMove O piece board) X
 
 winningPatterns :: [[GameBoard -> Maybe PlayerPiece]]
 winningPatterns =
@@ -82,11 +103,10 @@ winningPatterns =
 
 isWinningPattern :: GameBoard -> [(GameBoard -> Maybe PlayerPiece)] -> Bool
 isWinningPattern board positions =
-  areAllPlayerPieces board positions && areAllTheSamePlayerPiece board positions
+  areAllPlayerPieces && areAllTheSamePlayerPiece
   where
-    areAllPlayerPieces board positions = all isJust $ fmap ($ board) positions
-    areAllTheSamePlayerPiece board positions =
-      length (nub $ fmap ($ board) positions) == 1
+    areAllPlayerPieces = all isJust $ fmap ($ board) positions
+    areAllTheSamePlayerPiece = length (nub $ fmap ($ board) positions) == 1
 
-isGameComplete :: GameBoard -> Bool
-isGameComplete board = any (isWinningPattern board) winningPatterns
+isGameComplete :: Game -> Bool
+isGameComplete (Game board _) = any (isWinningPattern board) winningPatterns
