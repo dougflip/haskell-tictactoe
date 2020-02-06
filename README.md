@@ -1,7 +1,18 @@
 # Haskell TicTacToe
 
-A basic implementation of TicTacToe which could be exposed as a CLI app
-or web service to power a web front end.
+A basic implementation of TicTacToe.
+
+The goal is to have one module of business logic that is shared between a
+
+- CLI app
+- Web app
+- Native app
+
+Hoping to learn about
+
+- building multiple executables
+- writing a Haskell web server
+- writing a Haskell native GUI app (even if it is very simple)
 
 ## Quick Start
 

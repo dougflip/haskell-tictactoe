@@ -1,112 +1,114 @@
+-- Inspiration from
+-- https://dev.to/nt591/writing-a-tictactoe-game-in-haskell-545e
 module TicTacToeCore where
 
-import           Data.List  (any, nub)
-import           Data.Maybe (isJust)
-
-data PlayerPiece
+data Move
   = X
   | O
   deriving (Show, Eq)
 
-type GameBoardSquare = Maybe PlayerPiece
+data Cell
+  = Occupied Move
+  | Empty
+  deriving (Show, Eq)
 
-data GameBoard =
-  GameBoard
-    { square1 :: GameBoardSquare
-    , square2 :: GameBoardSquare
-    , square3 :: GameBoardSquare
-    , square4 :: GameBoardSquare
-    , square5 :: GameBoardSquare
-    , square6 :: GameBoardSquare
-    , square7 :: GameBoardSquare
-    , square8 :: GameBoardSquare
-    , square9 :: GameBoardSquare
+type CellNumber = Int
+
+type CellIndex = Int
+
+type Board = [Cell]
+
+data GameStatus
+  = NextMove Move
+  | Winner Move
+  | Tie
+  deriving (Show, Eq)
+
+data Game =
+  Game
+    { gameBoard  :: Board
+    , gameStatus :: GameStatus
     }
   deriving (Show, Eq)
 
-{- Tracks the current board and the status of the game.
-   Currently, `gameStatus` just stores which PlayerPiece has the next turn.
-   Eventually, I'd like this to be one of two things:
-     1. If the game is still in progress, then the PlayerPiece
-     2. If the game has finished then that data plus who won.
-   It's possible that what I actually want is 2 different game constructors:
-   ```
-   data Game = InProgressGame PlayerPiece | FinishedGame PlayerPiece
-   ```
-   But I'll need to play around with that
--}
-data Game =
-  Game
-    { gameBoard  :: GameBoard
-    , gameStatus :: PlayerPiece
-    }
+data MoveResult
+  = Error String
+  | Ok Game
+  deriving (Show, Eq)
 
-data PlayerMovePosition
-  = One
-  | Two
-  | Three
-  | Four
-  | Five
-  | Six
-  | Seven
-  | Eight
-  | Nine
+emptyBoard :: Board
+emptyBoard = take 9 $ repeat Empty
 
-emptyGameBoard :: GameBoard
-emptyGameBoard =
-  GameBoard
-    Nothing
-    Nothing
-    Nothing
-    Nothing
-    Nothing
-    Nothing
-    Nothing
-    Nothing
-    Nothing
+newGame :: Move -> Game
+newGame move = Game emptyBoard (NextMove move)
 
-newGame :: Game
-newGame = Game emptyGameBoard X
+nextMove :: Move -> Move
+nextMove X = O
+nextMove O = X
 
--- Can probably use lenses to reduce some boilerplate?
--- Its also possible that using a record is a poor data model for this.
-applyMove :: PlayerPiece -> PlayerMovePosition -> GameBoard -> GameBoard
-applyMove piece One board   = board {square1 = Just piece}
-applyMove piece Two board   = board {square2 = Just piece}
-applyMove piece Three board = board {square3 = Just piece}
-applyMove piece Four board  = board {square4 = Just piece}
-applyMove piece Five board  = board {square5 = Just piece}
-applyMove piece Six board   = board {square6 = Just piece}
-applyMove piece Seven board = board {square7 = Just piece}
-applyMove piece Eight board = board {square8 = Just piece}
-applyMove piece Nine board  = board {square9 = Just piece}
+isCellValid :: CellIndex -> Bool
+isCellValid x = x >= 0 && x <= 8
 
-{- This is the function that should be exposed.
-   The idea is that the "Game" itself records which piece has the next move
-   TODO: We still need to enforce that you can't play a position that is already played.
--}
-applyTurn :: PlayerMovePosition -> Game -> Game
-applyTurn piece (Game board X) = Game (applyMove X piece board) O
-applyTurn piece (Game board O) = Game (applyMove O piece board) X
+-- assumes the cell is valid since this is all internal
+-- if we expose this function then we can make a
+-- ValidCell type with a smart constructor
+isCellEmpty :: CellIndex -> Board -> Bool
+isCellEmpty x board = board !! x == Empty
 
-winningPatterns :: [[GameBoard -> Maybe PlayerPiece]]
+updateBoard :: Move -> CellIndex -> Board -> Board
+updateBoard move x board =
+  take x board ++ [Occupied move] ++ (drop (x + 1) board)
+
+winningPatterns :: [[CellIndex]]
 winningPatterns =
-  [ [square1, square2, square3]
-  , [square4, square5, square6]
-  , [square7, square8, square9]
-  , [square1, square4, square7]
-  , [square2, square5, square8]
-  , [square3, square6, square9]
-  , [square1, square5, square9]
-  , [square3, square5, square7]
+  [ [0, 1, 2]
+  , [3, 4, 5]
+  , [6, 7, 8]
+  , [0, 3, 6]
+  , [1, 4, 7]
+  , [2, 5, 8]
+  , [0, 4, 8]
+  , [2, 4, 6]
   ]
 
-isWinningPattern :: GameBoard -> [(GameBoard -> Maybe PlayerPiece)] -> Bool
-isWinningPattern board positions =
-  areAllPlayerPieces && areAllTheSamePlayerPiece
-  where
-    areAllPlayerPieces = all isJust $ fmap ($ board) positions
-    areAllTheSamePlayerPiece = length (nub $ fmap ($ board) positions) == 1
+isOccupied :: Cell -> Bool
+isOccupied (Occupied _) = True
+isOccupied _            = False
 
-isGameComplete :: Game -> Bool
-isGameComplete (Game board _) = any (isWinningPattern board) winningPatterns
+allEqual :: Eq a => [a] -> Bool
+allEqual []       = True
+allEqual [_]      = True
+allEqual (x:y:ys) = x == y && allEqual (y : ys)
+
+-- determine if _one_ winning pattern is present
+isWinningPattern :: Board -> [CellNumber] -> Bool
+isWinningPattern board xs = all isOccupied pieces && allEqual pieces
+  where
+    pieces = map (board !!) xs
+
+-- search all winning patterns to see if we have a winner
+isWinner :: Board -> Bool
+isWinner board = any (isWinningPattern board) winningPatterns
+
+-- Need to actually update the cell with the an `Occupied Move` instance
+updateGame :: Move -> CellIndex -> Board -> Game
+updateGame move x board = Game newBoard newStatus
+  where
+    newBoard = updateBoard move x board
+    newStatus
+      | isWinner newBoard = Winner move
+      | all isOccupied newBoard = Tie -- TODO: could figure out Tie earlier with some more work
+      | otherwise = NextMove $ nextMove move
+
+-- doesn't take a "Move" because the Game records who goes next
+playMove :: CellNumber -> Game -> MoveResult
+playMove _ (Game _ (Winner winner)) =
+  Error ("Player " ++ show winner ++ " has already won this game")
+playMove _ (Game _ Tie) = Error ("This game is a Tie!")
+playMove x (Game board (NextMove move))
+  | not $ isCellValid cellIndex = Error ("Cell " ++ show x ++ " is not valid")
+  | not $ isCellEmpty cellIndex board =
+    Error ("Cell" ++ show x ++ " is already occupied")
+  | otherwise = Ok $ updateGame move cellIndex board
+  where
+    cellIndex = x - 1
