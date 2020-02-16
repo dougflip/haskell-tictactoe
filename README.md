@@ -22,4 +22,4 @@ Hoping to learn about
 ## Using GHCID
 
 1. `stack build ghcid` - builds the correct version of ghcid for current ghc
-2. `stack exec -- ghcid -c "stack ghci haskell-tictactoe"` - starts ghcid and watches for changes
+2. `ghcid --command 'stack ghci --test --main-is haskell-tictactoe:haskell-tictactoe-test' --test ':main' --warnings` - compiles code and runs the tests
