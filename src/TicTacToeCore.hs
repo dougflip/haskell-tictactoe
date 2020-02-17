@@ -32,7 +32,7 @@ data Game =
   deriving (Show, Eq)
 
 data MoveResult
-  = Error String
+  = Error String Game
   | Ok Game
   deriving (Show, Eq)
 
@@ -102,13 +102,12 @@ updateGame move x board = Game newBoard newStatus
 
 -- doesn't take a "Move" because the Game records who goes next
 playMove :: CellNumber -> Game -> MoveResult
-playMove _ (Game _ (Winner winner)) =
-  Error ("Player " ++ show winner ++ " has already won this game")
-playMove _ (Game _ Tie) = Error ("This game is a Tie!")
-playMove x (Game board (NextMove move))
-  | not $ isCellValid cellIndex = Error ("Cell " ++ show x ++ " is not valid")
+playMove _ winner@(Game _ (Winner _)) = Ok winner
+playMove _ tie@(Game _ Tie) = Ok tie
+playMove x g@(Game board (NextMove move))
+  | not $ isCellValid cellIndex = Error ("Cell " ++ show x ++ " is not valid") g
   | not $ isCellEmpty cellIndex board =
-    Error ("Cell" ++ show x ++ " is already occupied")
+    Error ("Cell" ++ show x ++ " is already occupied") g
   | otherwise = Ok $ updateGame move cellIndex board
   where
     cellIndex = x - 1

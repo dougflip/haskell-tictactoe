@@ -26,9 +26,9 @@ library:
   source-dirs: src
 
 executables:
-  haskell-tictactoe-exe:
+  haskell-tictactoe-cli:
     main: Main.hs
-    source-dirs: app
+    source-dirs: app-cli
     ghc-options:
       - -threaded
       - -rtsopts
@@ -40,6 +40,7 @@ executables:
       - -Wredundant-constraints
     dependencies:
       - haskell-tictactoe
+      - ansi-terminal
 
 tests:
   haskell-tictactoe-test:

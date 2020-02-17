@@ -44,14 +44,18 @@ spec = do
       it "fills all available spaces" $ do
         let result = playGame X (1 :| [3, 2, 4, 5, 8, 6, 9, 7])
         toGameString result `shouldBe` "Tie: XXOOXXXOO"
+    describe "statuses that are completed" $ do
+      it "maintains a winner" $ do
+        let result = playGame X (3 :| [1, 5, 2, 7, 6, 9])
+        toGameString result `shouldBe` "Winner X: OOX_X_X__"
+      it "maintains a tie" $ do
+        let result = playGame X (1 :| [3, 2, 4, 5, 8, 6, 9, 7, 1, 2, 3])
+        toGameString result `shouldBe` "Tie: XXOOXXXOO"
     describe "errors" $ do
       it "protects against a cell value that is too low" $ do
         playGame X (pure 0) `shouldSatisfy` isError
       it "protects against a cell value that is too high" $ do
         playGame X (pure 10) `shouldSatisfy` isError
-      it "alerts when a user has already won" $ do
-        let result = playGame X (1 :| [4, 2, 5, 3, 6])
-        result `shouldSatisfy` isError
       it "alerts when a space is already occupied" $ do
         let result = playGame X (1 :| [1])
         result `shouldSatisfy` isError
