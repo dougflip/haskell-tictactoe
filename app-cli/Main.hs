@@ -9,6 +9,7 @@ import           TicTacToeCore
 resetScreen :: IO ()
 resetScreen = setSGR [Reset] >> clearScreen >> setCursorPosition 0 0
 
+-- TODO: Maybe these "render" functions go in Core or a Utils?
 renderCell :: Cell -> String
 renderCell (Occupied move) = show move
 renderCell Empty           = " "
@@ -31,6 +32,9 @@ renderBoard board = do
     secondRow = drop 3 . take 6 $ board
     thirdRow = drop 6 board
 
+-- TODO: Should the main `playMove` function take an already validated
+-- cell number? Then Core could provide a validation function?
+-- readEither >>= validateCell?
 askForCell :: IO Int
 askForCell = do
   putStrLn "Which cell would you like to play (1-9)?"
@@ -47,9 +51,10 @@ askForCell = do
 gameLoop :: MoveResult -> IO String
 gameLoop (Error msg game) = do
   putStrLn msg
-  gameLoop $ Ok game
+  cell <- askForCell
+  gameLoop $ playMove cell game
 gameLoop (Ok game) = do
-  resetScreen -- TODO: This reset is great, but it overwrites the previous error message
+  resetScreen
   let board = gameBoard game
   renderBoard board
   case game of
