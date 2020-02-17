@@ -1,8 +1,13 @@
 module Main where
 
-import           Data.List     (intercalate)
-import           Text.Read     (readMaybe)
+import           Data.List           (intercalate)
+import           System.Console.ANSI (SGR (Reset), clearScreen,
+                                      setCursorPosition, setSGR)
+import           Text.Read           (readMaybe)
 import           TicTacToeCore
+
+resetScreen :: IO ()
+resetScreen = setSGR [Reset] >> clearScreen >> setCursorPosition 0 0
 
 renderCell :: Cell -> String
 renderCell (Occupied move) = show move
@@ -36,20 +41,24 @@ askForCell = do
       askForCell
     Just i -> return i
 
+-- TODO: Should this just run until we hit a Winner or Tie case?
+-- maybe handle the "complete" cases in main?
+-- Maybe even consider exporing `Error | InProgress | Complete`?
 gameLoop :: MoveResult -> IO String
 gameLoop (Error msg game) = do
   putStrLn msg
   gameLoop $ Ok game
--- these constructors could probably be combined
--- with a String as the outcome
-gameLoop (Ok (winner@(Game _ (Winner move)))) =
-  return (show move ++ " has won the game!")
-gameLoop (Ok (tie@(Game _ (Tie)))) = return ("The game has ended in a tie")
-gameLoop nextMove@(Ok game@(Game board (NextMove move))) = do
+gameLoop (Ok game) = do
+  resetScreen -- TODO: This reset is great, but it overwrites the previous error message
+  let board = gameBoard game
   renderBoard board
-  putStrLn $ "Player " ++ show move ++ " is up"
-  cell <- askForCell
-  gameLoop $ playMove cell game
+  case game of
+    (Game _ (Winner move)) -> return (show move ++ " has won the game!")
+    (Game _ (Tie)) -> return ("The game has ended in a tie")
+    (Game _ (NextMove move)) -> do
+      putStrLn $ "Player " ++ show move ++ " is up"
+      cell <- askForCell
+      gameLoop $ playMove cell game
 
 main :: IO ()
 main = do
