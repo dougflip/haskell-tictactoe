@@ -18,6 +18,37 @@ type CellIndex = Int
 
 type Board = [Cell]
 
+{-|
+  Models a game that can still have further moves applied to it.
+-}
+data InProgressGame =
+  InProgressGame Board Move
+  deriving (Show, Eq)
+
+{-|
+  Models a game that has been played to completion
+-}
+data CompletedGame
+  = Winner Board Move
+  | Tie Board
+  deriving (Show, Eq)
+
+{-|
+  The result of applying a successful move to an in progress game.
+-}
+data GameResult
+  = InProgress InProgressGame
+  | Complete CompletedGame
+  deriving (Show, Eq)
+
+{-|
+  The result of _attempting_ to apply a move to an in progress game.
+-}
+data MoveResult
+  = Error InProgressGame String
+  | Ok GameResult
+  deriving (Show, Eq)
+
 emptyBoard :: Board
 emptyBoard = take 9 $ repeat Empty
 
@@ -69,40 +100,31 @@ isWinningPattern board xs = all isOccupied pieces && allEqual pieces
 isWinner :: Board -> Bool
 isWinner board = any (isWinningPattern board) winningPatterns
 
-{-|
-  Models a game that can still have further moves applied to it.
--}
-data InProgressGame =
-  InProgressGame Board Move
-  deriving (Show, Eq)
-
-{-|
-  Models a game that has been played to completion
--}
-data CompletedGame
-  = Winner Board Move
-  | Tie Board
-  deriving (Show, Eq)
-
-{-|
-  The result of applying a successful move to an in progress game.
--}
-data GameResult
-  = InProgress InProgressGame
-  | Complete CompletedGame
-  deriving (Show, Eq)
-
-{-|
-  The result of _attempting_ to apply a move to an in progress game.
--}
-data MoveResult
-  = Error InProgressGame String
-  | Ok GameResult
-  deriving (Show, Eq)
-
 newGame :: Move -> InProgressGame
 newGame move = InProgressGame emptyBoard move
 
+{-|
+  Updates the game with the provided move.
+  This is called once we know we have a valid move
+  so this will always succeed in updating the board.
+-}
+updateGame :: Move -> CellIndex -> Board -> GameResult
+updateGame move x board = result
+  where
+    newBoard = updateBoard move x board
+    result
+      | isWinner newBoard = Complete $ Winner newBoard move
+      | all isOccupied newBoard = Complete $ Tie newBoard -- TODO: could figure out Tie earlier with some more work
+      | otherwise = InProgress $ InProgressGame newBoard (nextMove move)
+
+{-|
+  This is the main function used to play the game.
+  You ask to play a particular cell and this function _attempts_ to apply that move.
+  The result can be either a validation error or a successful move.
+-}
+-- TODO: Would be interesting to create a `ValidCell` type.
+-- Could come through a smart constructor `getValidCell :: CellNumber -> Board -> Either String ValidCell`
+-- Then we could remove `MoveResult` since this function would always succeed.
 playMove :: CellNumber -> InProgressGame -> MoveResult
 playMove cell game@(InProgressGame board move)
   | not $ isCellValid cellIndex =
@@ -112,12 +134,3 @@ playMove cell game@(InProgressGame board move)
   | otherwise = Ok $ updateGame move cellIndex board
   where
     cellIndex = cell - 1
-
-updateGame :: Move -> CellIndex -> Board -> GameResult
-updateGame move x board = result
-  where
-    newBoard = updateBoard move x board
-    result
-      | isWinner newBoard = Complete $ Winner newBoard move
-      | all isOccupied newBoard = Complete $ Tie newBoard -- TODO: could figure out Tie earlier with some more work
-      | otherwise = InProgress $ InProgressGame newBoard (nextMove move)
