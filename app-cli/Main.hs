@@ -46,6 +46,14 @@ askForCell = do
       askForCell
     Just i -> return i
 
+handleInProgressGame :: InProgressGame -> IO MoveResult
+handleInProgressGame game@(InProgressGame board move) = do
+  resetScreen
+  renderBoard board
+  putStrLn $ "Player " ++ show move ++ " is up"
+  cell <- askForCell
+  pure $ playMove cell game
+
 gameLoop :: MoveResult -> IO CompletedGame
 gameLoop (Error game msg) = do
   putStrLn msg
@@ -53,12 +61,9 @@ gameLoop (Error game msg) = do
   gameLoop $ playMove cell game
 gameLoop (Ok gameResult) = do
   case gameResult of
-    (InProgress progressGame@(InProgressGame board move)) -> do
-      resetScreen
-      renderBoard board
-      putStrLn $ "Player " ++ show move ++ " is up"
-      cell <- askForCell
-      gameLoop $ playMove cell progressGame
+    (InProgress game) -> do
+      result <- handleInProgressGame game
+      gameLoop result
     (Complete completedGame) -> pure completedGame
 
 main :: IO ()

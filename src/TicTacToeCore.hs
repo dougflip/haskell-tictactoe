@@ -121,4 +121,3 @@ updateGame move x board = result
       | isWinner newBoard = Complete $ Winner newBoard move
       | all isOccupied newBoard = Complete $ Tie newBoard -- TODO: could figure out Tie earlier with some more work
       | otherwise = InProgress $ InProgressGame newBoard (nextMove move)
-------------------
