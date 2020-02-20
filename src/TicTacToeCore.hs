@@ -18,29 +18,8 @@ type CellIndex = Int
 
 type Board = [Cell]
 
-data GameStatus
-  = NextMove Move
-  | Winner Move
-  | Tie
-  deriving (Show, Eq)
-
-data Game =
-  Game
-    { gameBoard  :: Board
-    , gameStatus :: GameStatus
-    }
-  deriving (Show, Eq)
-
-data MoveResult
-  = Error String Game
-  | Ok Game
-  deriving (Show, Eq)
-
 emptyBoard :: Board
 emptyBoard = take 9 $ repeat Empty
-
-newGame :: Move -> Game
-newGame move = Game emptyBoard (NextMove move)
 
 nextMove :: Move -> Move
 nextMove X = O
@@ -90,24 +69,56 @@ isWinningPattern board xs = all isOccupied pieces && allEqual pieces
 isWinner :: Board -> Bool
 isWinner board = any (isWinningPattern board) winningPatterns
 
--- Need to actually update the cell with the an `Occupied Move` instance
-updateGame :: Move -> CellIndex -> Board -> Game
-updateGame move x board = Game newBoard newStatus
-  where
-    newBoard = updateBoard move x board
-    newStatus
-      | isWinner newBoard = Winner move
-      | all isOccupied newBoard = Tie -- TODO: could figure out Tie earlier with some more work
-      | otherwise = NextMove $ nextMove move
+{-|
+  Models a game that can still have further moves applied to it.
+-}
+data InProgressGame =
+  InProgressGame Board Move
+  deriving (Show, Eq)
 
--- doesn't take a "Move" because the Game records who goes next
-playMove :: CellNumber -> Game -> MoveResult
-playMove _ winner@(Game _ (Winner _)) = Ok winner
-playMove _ tie@(Game _ Tie) = Ok tie
-playMove x g@(Game board (NextMove move))
-  | not $ isCellValid cellIndex = Error ("Cell " ++ show x ++ " is not valid") g
+{-|
+  Models a game that has been played to completion
+-}
+data CompletedGame
+  = Winner Board Move
+  | Tie Board
+  deriving (Show, Eq)
+
+{-|
+  The result of applying a successful move to an in progress game.
+-}
+data GameResult
+  = InProgress InProgressGame
+  | Complete CompletedGame
+  deriving (Show, Eq)
+
+{-|
+  The result of _attempting_ to apply a move to an in progress game.
+-}
+data MoveResult
+  = Error InProgressGame String
+  | Ok GameResult
+  deriving (Show, Eq)
+
+newGame :: Move -> InProgressGame
+newGame move = InProgressGame emptyBoard move
+
+playMove :: CellNumber -> InProgressGame -> MoveResult
+playMove cell game@(InProgressGame board move)
+  | not $ isCellValid cellIndex =
+    Error game ("Cell " ++ show cell ++ " is not valid")
   | not $ isCellEmpty cellIndex board =
-    Error ("Cell" ++ show x ++ " is already occupied") g
+    Error game ("Cell" ++ show cell ++ " is already occupied")
   | otherwise = Ok $ updateGame move cellIndex board
   where
-    cellIndex = x - 1
+    cellIndex = cell - 1
+
+updateGame :: Move -> CellIndex -> Board -> GameResult
+updateGame move x board = result
+  where
+    newBoard = updateBoard move x board
+    result
+      | isWinner newBoard = Complete $ Winner newBoard move
+      | all isOccupied newBoard = Complete $ Tie newBoard -- TODO: could figure out Tie earlier with some more work
+      | otherwise = InProgress $ InProgressGame newBoard (nextMove move)
+------------------

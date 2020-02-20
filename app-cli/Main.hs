@@ -20,6 +20,7 @@ renderRow row = intercalate " | " $ fmap renderCell row
 dividingLine :: String
 dividingLine = "----------"
 
+-- TODO: Maybe this could just return a string?
 renderBoard :: [Cell] -> IO ()
 renderBoard board = do
   putStrLn $ renderRow firstRow
@@ -45,27 +46,31 @@ askForCell = do
       askForCell
     Just i -> return i
 
--- TODO: Should this just run until we hit a Winner or Tie case?
--- maybe handle the "complete" cases in main?
--- Maybe even consider exporing `Error | InProgress | Complete`?
-gameLoop :: MoveResult -> IO String
-gameLoop (Error msg game) = do
+gameLoop :: MoveResult -> IO CompletedGame
+gameLoop (Error game msg) = do
   putStrLn msg
   cell <- askForCell
   gameLoop $ playMove cell game
-gameLoop (Ok game) = do
-  resetScreen
-  let board = gameBoard game
-  renderBoard board
-  case game of
-    (Game _ (Winner move)) -> return (show move ++ " has won the game!")
-    (Game _ (Tie)) -> return ("The game has ended in a tie")
-    (Game _ (NextMove move)) -> do
+gameLoop (Ok gameResult) = do
+  case gameResult of
+    (InProgress progressGame@(InProgressGame board move)) -> do
+      resetScreen
+      renderBoard board
       putStrLn $ "Player " ++ show move ++ " is up"
       cell <- askForCell
-      gameLoop $ playMove cell game
+      gameLoop $ playMove cell progressGame
+    (Complete completedGame) -> pure completedGame
 
 main :: IO ()
 main = do
-  s <- gameLoop $ Ok $ newGame X
-  putStrLn $ show s
+  s <- gameLoop $ Ok $ InProgress $ newGame X
+  resetScreen
+  case s of
+    (Winner board move) -> do
+      putStrLn $ "Player " ++ show move ++ " has won the game!"
+      putStrLn "Here is the final board"
+      renderBoard board
+    (Tie board) -> do
+      putStrLn "You tied!"
+      putStrLn "Here is the final board"
+      renderBoard board
