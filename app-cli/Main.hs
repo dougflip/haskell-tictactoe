@@ -3,7 +3,6 @@ module Main where
 import           Data.List           (intercalate)
 import           System.Console.ANSI (SGR (Reset), clearScreen,
                                       setCursorPosition, setSGR)
-import           Text.Read           (readMaybe)
 import           TicTacToeCore
 
 resetScreen :: IO ()
@@ -33,33 +32,26 @@ renderBoard board = do
     secondRow = drop 3 . take 6 $ board
     thirdRow = drop 6 board
 
--- TODO: Should the main `playMove` function take an already validated
--- cell number? Then Core could provide a validation function?
--- readEither >>= validateCell?
-askForCell :: IO Int
-askForCell = do
+askForCell :: InProgressGame -> IO ValidMove
+askForCell game = do
   putStrLn "Which cell would you like to play (1-9)?"
-  s <- getLine
-  case readMaybe s of
-    Nothing -> do
-      putStrLn "You must provide an integer bewteen 1-9."
-      askForCell
-    Just i -> return i
+  rawCell <- getLine
+  case parseValidMove game rawCell of
+    Left msg -> do
+      putStrLn msg
+      askForCell game
+    Right valid -> pure valid
 
-handleInProgressGame :: InProgressGame -> IO MoveResult
+handleInProgressGame :: InProgressGame -> IO GameResult
 handleInProgressGame game@(InProgressGame board move) = do
   resetScreen
   renderBoard board
   putStrLn $ "Player " ++ show move ++ " is up"
-  cell <- askForCell
-  pure $ playMove cell game
+  validMove <- askForCell game
+  pure $ playMove' validMove
 
-gameLoop :: MoveResult -> IO CompletedGame
-gameLoop (Error game msg) = do
-  putStrLn msg
-  cell <- askForCell
-  gameLoop $ playMove cell game
-gameLoop (Ok gameResult) = do
+gameLoop :: GameResult -> IO CompletedGame
+gameLoop gameResult =
   case gameResult of
     (InProgress game) -> do
       result <- handleInProgressGame game
@@ -68,7 +60,7 @@ gameLoop (Ok gameResult) = do
 
 main :: IO ()
 main = do
-  s <- gameLoop $ Ok $ InProgress $ newGame X
+  s <- gameLoop $ InProgress $ newGame X
   resetScreen
   case s of
     (Winner board move) -> do

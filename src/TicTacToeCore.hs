@@ -2,6 +2,8 @@
 -- https://dev.to/nt591/writing-a-tictactoe-game-in-haskell-545e
 module TicTacToeCore where
 
+import           Text.Read (readEither)
+
 data Move
   = X
   | O
@@ -49,6 +51,14 @@ data MoveResult
   | Ok GameResult
   deriving (Show, Eq)
 
+{-|
+  Models a CellIndex that has been validated against the given game.
+  In other words, we have proven that this move is valid against this board.
+  Hidden behind a smart constructor.
+-}
+data ValidMove =
+  ValidMove CellIndex InProgressGame
+
 emptyBoard :: Board
 emptyBoard = take 9 $ repeat Empty
 
@@ -56,12 +66,12 @@ nextMove :: Move -> Move
 nextMove X = O
 nextMove O = X
 
-isCellValid :: CellIndex -> Bool
-isCellValid x = x >= 0 && x <= 8
+isCellInRange :: CellIndex -> Bool
+isCellInRange x = x >= 0 && x <= 8
 
 -- assumes the cell is valid since this is all internal
 -- if we expose this function then we can make a
--- ValidCell type with a smart constructor
+-- ValidMove type with a smart constructor
 isCellEmpty :: CellIndex -> Board -> Bool
 isCellEmpty x board = board !! x == Empty
 
@@ -122,15 +132,45 @@ updateGame move x board = result
   You ask to play a particular cell and this function _attempts_ to apply that move.
   The result can be either a validation error or a successful move.
 -}
--- TODO: Would be interesting to create a `ValidCell` type.
--- Could come through a smart constructor `getValidCell :: CellNumber -> Board -> Either String ValidCell`
--- Then we could remove `MoveResult` since this function would always succeed.
 playMove :: CellNumber -> InProgressGame -> MoveResult
 playMove cell game@(InProgressGame board move)
-  | not $ isCellValid cellIndex =
+  | not $ isCellInRange cellIndex =
     Error game ("Cell " ++ show cell ++ " is not valid")
   | not $ isCellEmpty cellIndex board =
     Error game ("Cell" ++ show cell ++ " is already occupied")
   | otherwise = Ok $ updateGame move cellIndex board
   where
     cellIndex = cell - 1
+
+playMove' :: ValidMove -> GameResult
+playMove' (ValidMove cell (InProgressGame board move)) = result
+  where
+    newBoard = updateBoard move cell board
+    result
+      | isWinner newBoard = Complete $ Winner newBoard move
+      | all isOccupied newBoard = Complete $ Tie newBoard -- TODO: could figure out Tie earlier with some more work
+      | otherwise = InProgress $ InProgressGame newBoard (nextMove move)
+
+{-|
+  Validates that a given `CellNumber` is valid for a given `InProgressGame`.
+  This allows the `playMove` function to _know_ that validation has been handled.
+-}
+mkValidMove :: InProgressGame -> CellNumber -> Either String ValidMove
+mkValidMove game@(InProgressGame board _) cell
+  | not $ isCellInRange cellIndex =
+    Left $ "Cell " ++ show cell ++ " is not valid"
+  | not $ isCellEmpty cellIndex board =
+    Left $ "Cell" ++ show cell ++ " is already occupied"
+  | otherwise = Right $ ValidMove cellIndex game
+  where
+    cellIndex = cell - 1
+
+{-|
+  Helper to parse a String and determine if it is a valid move.
+  If the string parses to an Int it is sent to `mkValidMove`.
+-}
+parseValidMove :: InProgressGame -> String -> Either String ValidMove
+parseValidMove game cellString = do
+  case readEither cellString of
+    Left _          -> Left "You must provide an integer from 1 to 9"
+    Right cellIndex -> mkValidMove game cellIndex
