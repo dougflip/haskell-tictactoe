@@ -17,11 +17,11 @@ Hoping to learn about
 ## Quick Start
 
 - `stack build --fast --file-watch --haddock-deps` - builds code and documentation and watches for file changes
-- `stack test --fast --file-watch` - runs the tests and watches for file changes
 
 ## Running the Tests
 
 - `stack test`
+- `stack test --fast --file-watch` - watch for changes and re-run tests
 
 ## Using GHCID
 
@@ -29,3 +29,7 @@ Hoping to learn about
 
 - `ghcid --command 'stack ghci --test --main-is haskell-tictactoe:haskell-tictactoe-test' --test ':main' --warnings` - compiles the library code and if successful runs the tests
 - `stack exec -- ghcid -c "stack ghci haskell-tictactoe"` - compiles the project
+
+## Play via CLI
+
+- `stack exec haskell-tictactoe-cli`
