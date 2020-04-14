@@ -1,37 +1,16 @@
 module Main where
 
-import           Data.List           (intercalate)
+import           RenderUtils         (renderBoard)
 import           System.Console.ANSI (SGR (Reset), clearScreen,
                                       setCursorPosition, setSGR)
 import           Text.Read           (readMaybe)
-import           TicTacToeCore
+import           TicTacToeCore       (CompletedGame (Tie, Winner),
+                                      GameResult (Complete, InProgress),
+                                      InProgressGame (InProgressGame), Move (X),
+                                      MoveResult (Error, Ok), newGame, playMove)
 
 resetScreen :: IO ()
 resetScreen = setSGR [Reset] >> clearScreen >> setCursorPosition 0 0
-
--- TODO: Maybe these "render" functions go in Core or a Utils?
-renderCell :: Cell -> String
-renderCell (Occupied move) = show move
-renderCell Empty           = " "
-
-renderRow :: [Cell] -> String
-renderRow row = intercalate " | " $ fmap renderCell row
-
-dividingLine :: String
-dividingLine = "----------"
-
--- TODO: Maybe this could just return a string?
-renderBoard :: [Cell] -> IO ()
-renderBoard board = do
-  putStrLn $ renderRow firstRow
-  putStrLn dividingLine
-  putStrLn $ renderRow secondRow
-  putStrLn dividingLine
-  putStrLn $ renderRow thirdRow
-  where
-    firstRow = take 3 board
-    secondRow = drop 3 . take 6 $ board
-    thirdRow = drop 6 board
 
 -- TODO: Should the main `playMove` function take an already validated
 -- cell number? Then Core could provide a validation function?
@@ -49,7 +28,7 @@ askForCell = do
 handleInProgressGame :: InProgressGame -> IO MoveResult
 handleInProgressGame game@(InProgressGame board move) = do
   resetScreen
-  renderBoard board
+  putStrLn $ renderBoard board
   putStrLn $ "Player " ++ show move ++ " is up"
   cell <- askForCell
   pure $ playMove cell game
@@ -74,8 +53,8 @@ main = do
     (Winner board move) -> do
       putStrLn $ "Player " ++ show move ++ " has won the game!"
       putStrLn "Here is the final board"
-      renderBoard board
+      putStrLn $ renderBoard board
     (Tie board) -> do
       putStrLn "You tied!"
       putStrLn "Here is the final board"
-      renderBoard board
+      putStrLn $ renderBoard board
