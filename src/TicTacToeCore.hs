@@ -18,6 +18,10 @@ type CellNumber = Int
 
 type CellIndex = Int
 
+newtype ValidCell =
+  ValidCell Int
+  deriving (Show, Eq)
+
 type Board = [Cell]
 
 {-|
@@ -138,10 +142,35 @@ playMove cell game@(InProgressGame board move)
     cellIndex = cell - 1
 
 {-|
-  Utility to parse a string into a valid cell index.
+  Another version of playMove that takes a pre-validated cell.
+  This removes the need to validate anything during this function
+  and keeps all of the validation logic together when parsing the cell itself.
+  It also means that this function can never "fail".
+-}
+playMove' :: ValidCell -> InProgressGame -> MoveResult
+playMove' (ValidCell cell) (InProgressGame board move) =
+  Ok $ updateGame move cell board
+
+{-|
+  Utility to parse a string into a valid cell number.
+  If it can parse to an int of 1-9 then the result is a Right, otherwise Left.
 -}
 parseCellNumber :: String -> Either String CellNumber
 parseCellNumber cell =
   case readMaybe cell of
     Nothing -> Left "You must provide an integer between 1-9."
     Just i  -> Right i
+
+{-|
+  Given a string cell and an InProgressGame, determine if the move is valid.
+  This will verify the string is 1-9 and an available space on the board.
+-}
+parseValidCell :: String -> InProgressGame -> Either String ValidCell
+parseValidCell cell (InProgressGame board _) =
+  parseCellNumber cell >>= parseFromCellNumber
+  where
+    parseFromCellNumber x
+      | not $ isCellValid x = Left $ "Cell " ++ show x ++ " is not valid"
+      | not $ isCellEmpty x board =
+        Left $ "Cell" ++ show cell ++ " is already occupied"
+      | otherwise = Right $ ValidCell (x - 1)
