@@ -2,6 +2,8 @@
 -- https://dev.to/nt591/writing-a-tictactoe-game-in-haskell-545e
 module TicTacToeCore where
 
+import           Text.Read (readMaybe)
+
 data Move
   = X
   | O
@@ -134,3 +136,12 @@ playMove cell game@(InProgressGame board move)
   | otherwise = Ok $ updateGame move cellIndex board
   where
     cellIndex = cell - 1
+
+{-|
+  Utility to parse a string into a valid cell index.
+-}
+parseCellNumber :: String -> Either String CellNumber
+parseCellNumber cell =
+  case readMaybe cell of
+    Nothing -> Left "You must provide an integer between 1-9."
+    Just i  -> Right i

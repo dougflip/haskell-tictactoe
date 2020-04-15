@@ -3,11 +3,11 @@ module Main where
 import           RenderUtils         (renderBoard)
 import           System.Console.ANSI (SGR (Reset), clearScreen,
                                       setCursorPosition, setSGR)
-import           Text.Read           (readMaybe)
 import           TicTacToeCore       (CompletedGame (Tie, Winner),
                                       GameResult (Complete, InProgress),
                                       InProgressGame (InProgressGame), Move (X),
-                                      MoveResult (Error, Ok), newGame, playMove)
+                                      MoveResult (Error, Ok), newGame,
+                                      parseCellNumber, playMove)
 
 resetScreen :: IO ()
 resetScreen = setSGR [Reset] >> clearScreen >> setCursorPosition 0 0
@@ -19,11 +19,11 @@ askForCell :: IO Int
 askForCell = do
   putStrLn "Which cell would you like to play (1-9)?"
   s <- getLine
-  case readMaybe s of
-    Nothing -> do
-      putStrLn "You must provide an integer bewteen 1-9."
+  case parseCellNumber s of
+    Left msg -> do
+      putStrLn msg
       askForCell
-    Just i -> return i
+    Right i -> return i
 
 handleInProgressGame :: InProgressGame -> IO MoveResult
 handleInProgressGame game@(InProgressGame board move) = do
