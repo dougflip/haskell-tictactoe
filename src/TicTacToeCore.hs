@@ -18,8 +18,8 @@ type CellNumber = Int
 
 type CellIndex = Int
 
-newtype ValidCell =
-  ValidCell Int
+data ValidPlay =
+  ValidPlay Int InProgressGame
   deriving (Show, Eq)
 
 type Board = [Cell]
@@ -67,7 +67,7 @@ isCellValid x = x >= 0 && x <= 8
 
 -- assumes the cell is valid since this is all internal
 -- if we expose this function then we can make a
--- ValidCell type with a smart constructor
+-- ValidPlay type with a smart constructor
 isCellEmpty :: CellIndex -> Board -> Bool
 isCellEmpty x board = board !! x == Empty
 
@@ -128,8 +128,8 @@ updateGame move x board = result
   You ask to play a particular cell and this function _attempts_ to apply that move.
   The result can be either a validation error or a successful move.
 -}
--- TODO: Would be interesting to create a `ValidCell` type.
--- Could come through a smart constructor `getValidCell :: CellNumber -> Board -> Either String ValidCell`
+-- TODO: Would be interesting to create a `ValidPlay` type.
+-- Could come through a smart constructor `getValidPlay :: CellNumber -> Board -> Either String ValidPlay`
 -- Then we could remove `MoveResult` since this function would always succeed.
 playMove :: CellNumber -> InProgressGame -> MoveResult
 playMove cell game@(InProgressGame board move)
@@ -147,12 +147,12 @@ playMove cell game@(InProgressGame board move)
   and keeps all of the validation logic together when parsing the cell itself.
   It also means that this function can never "fail".
 -}
-playMove' :: ValidCell -> InProgressGame -> MoveResult
-playMove' (ValidCell cell) (InProgressGame board move) =
+playMove' :: ValidPlay -> MoveResult
+playMove' (ValidPlay cell (InProgressGame board move)) =
   Ok $ updateGame move cell board
 
 {-|
-  Utility to parse a string into a valid cell number.
+  Utility to parse a string into a number.
   If it can parse to an int of 1-9 then the result is a Right, otherwise Left.
 -}
 parseCellNumber :: String -> Either String CellNumber
@@ -164,13 +164,14 @@ parseCellNumber cell =
 {-|
   Given a string cell and an InProgressGame, determine if the move is valid.
   This will verify the string is 1-9 and an available space on the board.
+  If it is valid, return a ValidPlay otherwise an error message.
 -}
-parseValidCell :: String -> InProgressGame -> Either String ValidCell
-parseValidCell cell (InProgressGame board _) =
+parseValidPlay :: String -> InProgressGame -> Either String ValidPlay
+parseValidPlay cell game@(InProgressGame board _) =
   parseCellNumber cell >>= parseFromCellNumber
   where
     parseFromCellNumber x
-      | not $ isCellValid x = Left $ "Cell " ++ show x ++ " is not valid"
-      | not $ isCellEmpty x board =
+      | not $ isCellValid x = Left "You must provide an integer between 1-9."
+      | not $ isCellEmpty (x - 1) board =
         Left $ "Cell" ++ show cell ++ " is already occupied"
-      | otherwise = Right $ ValidCell (x - 1)
+      | otherwise = Right $ ValidPlay (x - 1) game

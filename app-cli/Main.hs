@@ -6,8 +6,10 @@ import           System.Console.ANSI (SGR (Reset), clearScreen,
 import           TicTacToeCore       (CompletedGame (Tie, Winner),
                                       GameResult (Complete, InProgress),
                                       InProgressGame (InProgressGame), Move (X),
-                                      MoveResult (Error, Ok), newGame,
-                                      parseCellNumber, playMove)
+                                      MoveResult (Error, Ok),
+                                      ValidPlay (ValidPlay), newGame,
+                                      parseCellNumber, parseValidPlay, playMove,
+                                      playMove')
 
 resetScreen :: IO ()
 resetScreen = setSGR [Reset] >> clearScreen >> setCursorPosition 0 0
@@ -15,29 +17,29 @@ resetScreen = setSGR [Reset] >> clearScreen >> setCursorPosition 0 0
 -- TODO: Should the main `playMove` function take an already validated
 -- cell number? Then Core could provide a validation function?
 -- readEither >>= validateCell?
-askForCell :: IO Int
-askForCell = do
+askForCell :: InProgressGame -> IO ValidPlay
+askForCell game = do
   putStrLn "Which cell would you like to play (1-9)?"
   s <- getLine
-  case parseCellNumber s of
+  case parseValidPlay s game of
     Left msg -> do
       putStrLn msg
-      askForCell
-    Right i -> return i
+      askForCell game
+    Right validPlay -> return validPlay
 
 handleInProgressGame :: InProgressGame -> IO MoveResult
 handleInProgressGame game@(InProgressGame board move) = do
   resetScreen
   putStrLn $ renderBoard board
   putStrLn $ "Player " ++ show move ++ " is up"
-  cell <- askForCell
-  pure $ playMove cell game
+  validPlay <- askForCell game
+  pure $ playMove' validPlay
 
 gameLoop :: MoveResult -> IO CompletedGame
 gameLoop (Error game msg) = do
   putStrLn msg
-  cell <- askForCell
-  gameLoop $ playMove cell game
+  validPlay <- askForCell game
+  gameLoop $ playMove' validPlay
 gameLoop (Ok gameResult) = do
   case gameResult of
     (InProgress game) -> do
