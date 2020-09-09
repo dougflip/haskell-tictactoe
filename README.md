@@ -33,3 +33,9 @@ Hoping to learn about
 ## Play via CLI
 
 - `stack exec haskell-tictactoe-cli`
+
+## Formatting Code
+
+Using [hfmt](https://github.com/danstiner/hfmt) via VS Code plugin
+
+- `stack install hfmt`
